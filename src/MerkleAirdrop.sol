@@ -70,4 +70,8 @@ contract MerkleAirdrop {
             return airdropRecipients;
       }
 
+      function getTimeSinceDeployment() external view returns (uint256) {
+            return block.timestamp - i_deployTime;
+      }
+
 }

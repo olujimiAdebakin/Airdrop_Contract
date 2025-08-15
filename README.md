@@ -1,139 +1,196 @@
-# AirBucks Airdrop Contracts
+# Secure Merkle Airdrop Contracts
 
-## Overview
-This project comprises a foundational ERC-20 token, `AirBucksToken`, and a secure `MerkleAirdrop` smart contract designed for efficient and verifiable token distribution on the Ethereum Virtual Machine (EVM). Developed with Solidity and leveraging the Foundry development toolkit, it ensures robust, standard-compliant, and auditable on-chain operations.
+This project presents a robust, decentralized token distribution system leveraging Solidity smart contracts and the Foundry development framework. It enables efficient and verifiable token airdrops using Merkle trees, ensuring fair and secure distribution to whitelisted recipients. 🌳✨
 
 ## Features
-- ✨ **ERC-20 Compliant Token**: Implements the widely adopted ERC-20 standard, ensuring compatibility with wallets and exchanges.
-- 💰 **Owner-Controlled Minting**: The `AirBucksToken` features a secure, owner-restricted minting function for precise token supply management.
-- 🌳 **Merkle Tree-based Airdrop**: Utilizes Merkle proofs for distributing tokens, enabling efficient verification of eligible recipients off-chain and secure claims on-chain.
-- 🔐 **One-Time Claim Mechanism**: Prevents double-claiming by tracking addresses that have successfully received their airdrop.
-- 🛡️ **Secure Token Transfers**: Integrates OpenZeppelin's `SafeERC20` library to mitigate common ERC-20 token transfer pitfalls and enhance security.
-- 🔗 **OpenZeppelin Integration**: Leverages battle-tested OpenZeppelin contracts for foundational components like `ERC20`, `Ownable`, and `MerkleProof`, enhancing security and reliability.
+
+-   **Token Issuance**: Introduces `AirBucksToken`, a custom ERC-20 compliant token, serving as the asset for distribution.
+-   **Merkle Proof Verification**: Employs Merkle trees to establish a whitelist, allowing claimants to verify their eligibility on-chain with cryptographic proofs.
+-   **Anti-Sybil Mechanism**: Implements a claim tracking system to prevent multiple claims from the same address, ensuring equitable token distribution.
+-   **Safe Token Transfers**: Utilizes OpenZeppelin's `SafeERC20` library for secure and reliable token interactions, mitigating common ERC-20 vulnerabilities.
+-   **Foundry Toolchain**: Developed and tested using the Foundry toolkit, providing a high-performance environment for smart contract development, testing, and deployment scripting.
 
 ## Getting Started
 
-To get a copy of this project up and running on your local machine, follow these steps.
+To set up and run this project locally, follow these steps:
 
 ### Installation
 
-Before you begin, ensure you have [Foundry](https://getfoundry.sh/) installed. Foundry is a blazing fast, portable, and modular toolkit for Ethereum application development.
-
 1.  **Clone the Repository**:
     ```bash
-    git clone https://github.com/your-username/Airdrop_contract.git
-    cd Airdrop_contract
+    git clone https://github.com/olujimiAdebakin/Airdrop_Contract.git
+    cd Airdrop_Contract
     ```
 
-2.  **Install Foundry Dependencies**:
+2.  **Install Foundry**:
+    If you haven't installed Foundry, run the following commands:
+    ```bash
+    curl -L https://foundry.paradigm.xyz | bash
+    foundryup
+    ```
+
+3.  **Install Project Dependencies**:
+    Navigate to the project directory and install the required OpenZeppelin and Forge-Std libraries using `forge`:
     ```bash
     forge install
     ```
-    This command will fetch the required OpenZeppelin and Forge Standard Library dependencies specified in `.gitmodules`.
 
-3.  **Build the Contracts**:
+4.  **Build the Contracts**:
+    Compile the smart contracts:
     ```bash
     forge build
     ```
-    This compiles the smart contracts, generating their ABI and bytecode in the `out/` directory.
-
-### Environment Variables
-
-This project does not require any specific environment variables for local development or compilation. However, for deployment or interaction with live networks, you would typically configure network RPC URLs and private keys.
 
 ## Usage
 
-The project consists of two core smart contracts: `AirBucksToken.sol` and `MerkleAirdrop.sol`.
+This project includes scripts to help you generate the Merkle input, deploy contracts, and interact with the airdrop system.
 
-### AirBucksToken
+1.  **Generate Merkle Tree Input**:
+    The `script/GenerateInput.s.sol` script is used to create the `input.json` file, which contains the whitelisted addresses and their respective airdrop amounts, formatted for Merkle tree generation.
 
-This is a standard ERC-20 token with an owner-only minting function.
-
--   **Deployment**: Deploy the `AirBucksToken` contract. The deployer will automatically become the `owner` of the token.
--   **Minting**: The owner can mint new `ABUCKS` tokens to any specified address. For example, to fund the airdrop contract:
-    ```solidity
-    function mint(address to, uint256 amount) external onlyOwner
+    To run this script:
+    ```bash
+    forge script script/GenerateInput.s.sol --broadcast --rpc-url <YOUR_RPC_URL>
     ```
-    _Example call (via a script or direct interaction after deployment):_
+    This will generate an `input.json` file in the `script/target/` directory containing the `types`, `count`, and `values` for the whitelist.
+
+2.  **Deploy Contracts**:
+    You would typically have another script (e.g., `Deploy.s.sol`) to deploy `AirBucksToken` and `MerkleAirdrop` to a blockchain network. The `MerkleAirdrop` constructor requires the computed Merkle root and the address of the `AirBucksToken`.
+
+    *Example (conceptual) deployment via script:*
     ```solidity
-    // Assuming 'airbucksToken' is your deployed contract instance
-    // And 'airdropContractAddress' is the address of your deployed MerkleAirdrop contract
-    // And 'totalAirdropAmount' is the total amount of ABUCKS tokens to be distributed
-    airbucksToken.mint(airdropContractAddress, totalAirdropAmount);
+    // script/Deploy.s.sol (conceptual)
+    import {Script} from "forge-std/Script.sol";
+    import {AirBucksToken} from "../src/AirBucksToken.sol";
+    import {MerkleAirdrop} from "../src/MerkleAirdrop.sol";
+
+    contract DeployScript is Script {
+        function run() public returns (AirBucksToken airbucks, MerkleAirdrop airdrop) {
+            vm.startBroadcast();
+
+            airbucks = new AirBucksToken();
+            // In a real scenario, you'd calculate the merkleRoot dynamically or load it
+            // For example, from the output of GenerateInput.s.sol
+            bytes32 hardcodedMerkleRoot = 0x...; // Placeholder: Replace with actual root
+            airdrop = new MerkleAirdrop(hardcodedMerkleRoot, airbucks);
+
+            vm.stopBroadcast();
+        }
+    }
+    ```
+    You would then deploy using:
+    ```bash
+    forge script script/Deploy.s.sol --rpc-url <YOUR_RPC_URL> --private-key <YOUR_PRIVATE_KEY> --broadcast --verify --etherscan-api-key <YOUR_ETHERSCAN_API_KEY>
     ```
 
-### MerkleAirdrop
+3.  **Claiming Tokens**:
+    Once deployed, users can interact with the `MerkleAirdrop` contract's `claim` function, providing their address, the amount to claim, and their Merkle proof.
 
-This contract facilitates the distribution of `AirBucks` tokens using a Merkle tree. Eligible recipients and their claimable amounts are embedded into a Merkle tree, and users claim by providing a valid Merkle proof.
-
-1.  **Prepare Airdrop Data (Off-chain)**:
-    -   Create a list of eligible recipients and their respective `AirBucks` amounts.
-    -   Generate a Merkle tree from this data (e.g., using a JavaScript or Python script). Each "leaf" in the tree should be `keccak256(abi.encode(account, amount))`.
-    -   Obtain the final `merkleRoot` from the generated Merkle tree.
-
-2.  **Deploy `MerkleAirdrop`**:
-    -   Deploy the `MerkleAirdrop` contract, passing the calculated `merkleRoot` and the address of the deployed `AirBucksToken` (IERC20) contract as constructor arguments.
-    ```solidity
-    constructor(bytes32 merkleRoot, IERC20 airdropToken)
+    *Example interaction (using `cast` for a simple case):*
+    ```bash
+    # Assuming MerkleAirdropAddress is the deployed address of the MerkleAirdrop contract
+    # and you have the Merkle proof for your address and amount
+    cast send <MerkleAirdropAddress> "claim(address,uint256,bytes32[])" <YOUR_ADDRESS> <CLAIM_AMOUNT> "[<PROOF_HASH_1>, <PROOF_HASH_2>, ...]" --rpc-url <YOUR_RPC_URL> --private-key <YOUR_PRIVATE_KEY>
     ```
 
-3.  **Fund the Airdrop Contract**:
-    -   Transfer the total amount of `AirBucks` tokens designated for the airdrop from the `AirBucksToken` owner to the deployed `MerkleAirdrop` contract. This ensures the airdrop contract has enough tokens to distribute.
-
-4.  **Claim Tokens (On-chain)**:
-    -   An eligible recipient calls the `claim` function, providing their `account` address, the `amount` they are claiming, and the `merkleProof` (an array of hashes) generated off-chain.
-    ```solidity
-    function claim(address account, uint256 amount, bytes32[] calldata merkleProof) external
+4.  **Running Tests**:
+    The project includes comprehensive tests written in Solidity using Foundry. To execute the test suite:
+    ```bash
+    forge test
     ```
-    -   The contract verifies the proof against the stored `merkleRoot` and checks if the `account` has already claimed.
-    -   Upon successful verification, the specified `amount` of `AirBucks` tokens is transferred to the `account`.
-    -   An `AirdropClaimed` event is emitted.
-
-### Example Claim Flow (Conceptual)
-
-1.  A user's off-chain application provides `userAddress`, `claimAmount`, and `merkleProof`.
-2.  The user connects their wallet and triggers a transaction to the `MerkleAirdrop` contract's `claim` function with these parameters.
-3.  The `MerkleAirdrop` contract executes the claim logic, transfers tokens, and updates its state.
 
 ## Technologies Used
 
-| Technology              | Description                                                                 |
-| :---------------------- | :-------------------------------------------------------------------------- |
-| **Solidity**            | Primary language for writing smart contracts on the EVM.                    |
-| **Foundry**             | Fast, robust, and modern toolkit for smart contract development and testing. |
-| **Forge**               | Foundry's command-line tool for compiling, testing, and deploying contracts. |
-| **OpenZeppelin Contracts** | Secure and community-audited smart contract libraries.                      |
+This project harnesses the power of leading blockchain development technologies.
+
+| Technology      | Description                                                                 | Link                                                             |
+| :-------------- | :-------------------------------------------------------------------------- | :--------------------------------------------------------------- |
+| Solidity        | An object-oriented, high-level language for implementing smart contracts.   | [Solidity](https://soliditylang.org/)                            |
+| Foundry         | A blazing-fast, portable, and modular toolkit for Ethereum application development. | [Foundry](https://getfoundry.sh/)                                |
+| OpenZeppelin Contracts | A library of battle-tested smart contracts for secure development on Ethereum and other EVM blockchains. | [OpenZeppelin](https://docs.openzeppelin.com/contracts/4.x/) |
+| Merkle Trees    | A tree in which every leaf node is labelled with the cryptographic hash of a data block, and every non-leaf node is labelled with the cryptographic hash of its child nodes. | [Merkle Tree (Wikipedia)](https://en.wikipedia.org/wiki/Merkle_tree) |
+
+## Contract Interface
+
+### Deployed Addresses
+
+Contract addresses will be provided upon successful deployment to a blockchain network.
+
+### Contracts
+
+#### `AirBucksToken`
+
+An ERC-20 compliant token contract that implements ownership controls, allowing the designated owner to mint new tokens.
+
+**Functions**:
+
+-   `constructor()`
+    Initializes the token with the name "AirBucks" and symbol "ABUCKS", and designates the deployer as the initial owner.
+
+-   `mint(address to, uint256 amount) external onlyOwner`
+    Mints a specified `amount` of new `AirBucksToken` tokens and transfers them to the `to` address. This function is restricted to be called only by the contract's owner.
+    **Parameters**:
+    -   `to`: `address` - The address of the recipient who will receive the minted tokens.
+    -   `amount`: `uint256` - The quantity of tokens to be minted and transferred.
+
+#### `MerkleAirdrop`
+
+Manages the secure distribution of ERC-20 tokens to a predefined set of recipients using a Merkle tree whitelist.
+
+**Functions**:
+
+-   `constructor(bytes32 merkleRoot, IERC20 airdropToken)`
+    Initializes the Merkle airdrop contract. It sets the immutable Merkle root (representing the whitelisted claims) and the address of the ERC-20 token contract that will be distributed.
+    **Parameters**:
+    -   `merkleRoot`: `bytes32` - The cryptographic root of the Merkle tree, which encodes all valid recipient addresses and their corresponding claimable amounts.
+    -   `airdropToken`: `IERC20` - The interface of the ERC-20 token contract that this airdrop will distribute.
+
+-   `claim(address account, uint256 amount, bytes32[] calldata merkleProof) external`
+    Allows a whitelisted `account` to claim a specific `amount` of tokens by providing a valid `merkleProof`. The function verifies the proof against the stored Merkle root and ensures that the account has not previously claimed.
+    **Parameters**:
+    -   `account`: `address` - The address attempting to claim the tokens.
+    -   `amount`: `uint256` - The specific amount of tokens that this `account` is eligible to claim according to the whitelist.
+    -   `merkleProof`: `bytes32[]` - The cryptographic proof (array of Merkle tree sibling hashes) required to validate the claim.
+    **Events Emitted**:
+    -   `AirdropClaimed(address indexed account, uint256 amount)`: Emitted upon a successful claim, indicating the `account` that claimed and the `amount` received.
+    **Errors Thrown**:
+    -   `MerkleAirdrop_InvalidProof()`: Thrown if the provided `merkleProof` does not validate against the `i_merkleRoot` for the given `account` and `amount`.
+    -   `MerkleAirdrop_AlreadyClaimed()`: Thrown if the `account` attempting to claim has already successfully claimed their tokens.
+
+-   `getAirdropToken() external view returns (IERC20)`
+    Returns the address of the ERC-20 token contract that is being distributed by this airdrop.
+
+-   `getMerkleRoot() external view returns (bytes32)`
+    Returns the immutable Merkle root hash that was set during the contract's deployment.
+
+-   `getAirdropRecipients() external view returns (address[] memory)`
+    Returns a dynamic array containing all addresses that have successfully claimed tokens through this airdrop contract.
+
+-   `getTimeSinceDeployment() external view returns (uint256)`
+    Calculates and returns the time elapsed in seconds since the `MerkleAirdrop` contract was deployed.
 
 ## Contributing
 
-We welcome contributions to enhance this project! To contribute:
+We welcome contributions to enhance the Merkle Airdrop project! Please follow these guidelines:
 
-1.  🍴 Fork the repository.
-2.  🌿 Create a new branch (`git checkout -b feature/your-feature-name`).
-3.  ✏️ Make your changes and commit them with clear, concise messages.
-4.  🧪 Write tests for your changes to ensure functionality and prevent regressions.
-5.  ⬆️ Push your branch to your forked repository.
-6.  🤝 Open a pull request against the `main` branch of this repository.
-
-Please ensure your code adheres to existing coding standards and passes all tests.
-
-## License
-
-This project is licensed under the MIT License. See the `SPDX-License-Identifier` in the source code for details.
+-   **Fork the Repository**: Start by forking this repository to your GitHub account.
+-   **Create a New Branch**: Create a descriptive branch for your feature or bug fix (e.g., `feat/add-new-feature` or `fix/resolve-bug`).
+-   **Make Your Changes**: Implement your changes and ensure they adhere to the existing code style.
+-   **Write Tests**: For any new features or bug fixes, write comprehensive unit tests using Foundry to ensure correctness.
+-   **Run Tests**: Before submitting, ensure all existing and new tests pass successfully by running `forge test`.
+-   **Open a Pull Request**: Submit a pull request to the `main` branch of this repository, clearly describing your changes and their purpose.
 
 ## Author Info
 
-Connect with me and see my other projects!
-
--   **LinkedIn**: [Your LinkedIn Profile](https://linkedin.com/in/your-username)
--   **Twitter**: [Your Twitter Handle](https://twitter.com/your-username)
--   **Portfolio**: [Your Personal Website/Portfolio](https://your-portfolio.com)
+-   Your Name Here
+-   LinkedIn: [Your LinkedIn Profile]
+-   Twitter: [Your Twitter Handle]
 
 ---
 
-![Solidity](https://img.shields.io/badge/Solidity-e6e6e6?style=for-the-badge&logo=solidity&logoColor=black)
-![Foundry](https://img.shields.io/badge/Foundry-black?style=for-the-badge&logo=foundry&logoColor=white)
-![OpenZeppelin](https://img.shields.io/badge/OpenZeppelin-4E5257?style=for-the-badge&logo=openzeppelin&logoColor=white)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
+![Solidity](https://img.shields.io/badge/Solidity-%23363636.svg?style=for-the-badge&logo=solidity&logoColor=white)
+![Foundry](https://img.shields.io/badge/Foundry-black?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNzU2IDc1NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIzNzguMDI1IiBjeT0iMzc4LjAyNCIgcj0iMzQ3Ljc4IiBmaWxsPSIjRkZGRkZGIi8+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0zNzguMDI1IDBMNzI1LjgwNSAyMTkuMzM5VjUzNi43MDhMMzc4LjAyNSA3NTYuMDQ2TDMwLjI0NiA1MzYuNzA4VjIxOS4zMzlMMzc4LjAyNSAwWk0xMzEuMDUzIDU0NS4yMDlMMzU1LjIzIDcxNy45MTZMNDAyLjk1NCA3MDcuNjM1VjQ3My45MzFMMzU1LjIzIDQ1MC4wODZMMTgxLjk1NiA0ODcuNDVMMTMxLjA1MyA1NDUuMjA5Wk01NDkuOTk1IDQ1MC4wODZMMzcyLjYwNCA0NzMuOTMxVjcwNy42MzVMMzkwLjE2IDcxNy45MTZMNjI0Ljk5NiA1NDUuMjA5TDU5NS44NTQgNTExLjQ0Nkw1NDkuOTk1IDQ1MC4wODZaTTI4MS43MDkgNDIxLjc0MkwyMjQuNTcgMzcyLjcxVjE5Mi44NzNMMjgyLjY3IDEzNC41ODNMIDQ0My44MzkgMjAwLjk2Nkw0OTEuMTA4IDE2OS40NjhMMzI1LjYwMyAxMTUuMjgyTDI4MS43MDkgNDIxLjc0MlpNNzYuMjIgMjMyLjc2N0wzNTUuMjMgNDQ4LjgyNlY3MS43NzVMMTc5LjI2NiAxNjguOTExTDc2LjIyIDIzMi43NjdaTTY3OS44MjEgMjMyLjc2N0w0MDEuMTE1IDcxLjc3NXYzNzcuMDUgTDgyMy4wMjQgMTY4LjkxMUw2NzkuODIxIDIzMi43NjdaTTM1NS4yMjkgNDU2LjMwMlYyNjQuMzU3SDM1Ny41NTlDMzYxLjM0MyAyNjQuMzU3IDM2NC40OTggMjY3LjUxMSAzNjQuNDk4IDI3MS4yOTZMMzYxLjg0NiA0MjEuNDA2QzM2MS40MjMgNDI1LjYzOSAzNTcuODM1IDQyOC4zNDIgMzUzLjU3NyA0MjguMzQyQzM1MC43MjggNDI4LjM0MiAzNDguMTc3IDQyNi44MTUgMzQ2Ljc2NSA0MjQuMTMyTDM0Mi4zNSAyMjAuMzQ3QzMzOC41MzYgNDU2LjMwMiAzMzguMDY4IDQxMi45MDIgMzQwLjI2NSA0MDkuMDI0QzM0Mi40NjIgMzA1LjE0NiAzNDYuODgyIDI5OS45ODggMzUwLjgzIDI5NC42MzFDMzU1LjcwOSAyODcuNTA0IDM1Ny40ODMgMjc5LjYzMyAzNTcuNTU5IDI3MS4xNzVIzNTUuMjI5VjQ1Ni4zMDJaIiBmaWxsPSIjMDAwMDAwIi8+PC9zdmc+)
+![OpenZeppelin](https://img.shields.io/badge/OpenZeppelin-336699?style=for-the-badge&logo=openzeppelin&logoColor=white)
+![Build Status](https://img.shields.io/badge/Build%20Status-Passing-brightgreen?style=for-the-badge)
 
 [![Readme was generated by Dokugen](https://img.shields.io/badge/Readme%20was%20generated%20by-Dokugen-brightgreen)](https://www.npmjs.com/package/dokugen)
