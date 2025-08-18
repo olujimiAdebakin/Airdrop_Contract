@@ -11,7 +11,7 @@ contract GenerateInput is Script {
     string[] types = new string[](2);
     uint256 count;
     string[] whitelist = new string[](4);
-    string private constant  INPUT_PATH = "/script/target/input.json";
+    string private constant INPUT_PATH = "/script/target/input.json";
 
     function run() public {
         types[0] = "address";
@@ -30,18 +30,46 @@ contract GenerateInput is Script {
 
     function _createJSON() internal view returns (string memory) {
         string memory countString = vm.toString(count); // convert
-        //  count to string 
-         string memory amountString = vm.toString(AMOUNT); // convert amount to string
+        //  count to string
+        string memory amountString = vm.toString(AMOUNT); // convert amount to string
 
         string memory json = string.concat('{ "types": ["address", "uint"], "count":', countString, ',"values": {');
         for (uint256 i = 0; i < whitelist.length; i++) {
             if (i == whitelist.length - 1) {
-                json = string.concat(json, '"', vm.toString(i), '"', ': { "0":', '"',whitelist[i],'"',', "1":', '"',amountString,'"', ' }');
+                json = string.concat(
+                    json,
+                    '"',
+                    vm.toString(i),
+                    '"',
+                    ': { "0":',
+                    '"',
+                    whitelist[i],
+                    '"',
+                    ', "1":',
+                    '"',
+                    amountString,
+                    '"',
+                    " }"
+                );
             } else {
-            json = string.concat(json, '"', vm.toString(i), '"', ': { "0":', '"',whitelist[i],'"',', "1":', '"',amountString,'"', ' },');
+                json = string.concat(
+                    json,
+                    '"',
+                    vm.toString(i),
+                    '"',
+                    ': { "0":',
+                    '"',
+                    whitelist[i],
+                    '"',
+                    ', "1":',
+                    '"',
+                    amountString,
+                    '"',
+                    " },"
+                );
             }
         }
-        json = string.concat(json, '} }');
+        json = string.concat(json, "} }");
 
         return json;
     }
